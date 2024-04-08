@@ -1,0 +1,29 @@
+from flask import Flask, jsonify, render_template
+import random
+import threading
+import time
+
+app = Flask(__name__)
+
+# This example uses random data. Replace this with your actual LoRa receiving logic.
+current_location = {'latitude': 0, 'longitude': 0}
+
+def receive_lora_data():
+    global current_location
+    while True:
+        # Simulate receiving data. Replace this with actual data received from the LoRa module.
+        current_location['latitude'] = 40.0 + random.random() / 10.0  # Example data
+        current_location['longitude'] = -74.0 + random.random() / 10.0  # Example data
+        time.sleep(2)  # Simulate delay between receiving messages
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/location', methods=['GET'])
+def location():
+    return jsonify(current_location)
+
+if __name__ == '__main__':
+    threading.Thread(target=receive_lora_data).start()
+    app.run(host='0.0.0.0', port=5000, debug=True)
