@@ -1,0 +1,35 @@
+# You need to install pyserial and RPi.GPIO
+import serial
+import time
+from RPi import GPIO
+
+# Define the LoRa module pins
+cs_pin = 8
+reset_pin = 17
+miso_pin = 9
+mosi_pin = 10
+sck_pin = 11
+dio0_pin = 4
+
+# Setup GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(cs_pin, GPIO.OUT)
+GPIO.setup(reset_pin, GPIO.OUT)
+
+# Reset LoRa module
+GPIO.output(reset_pin, GPIO.HIGH)
+time.sleep(0.1)
+GPIO.output(reset_pin, GPIO.LOW)
+time.sleep(0.1)
+
+# Initialize SPI and LoRa
+# This part will depend heavily on the library you're using for LoRa
+# Assuming you have a function `LoRa_init()` and `LoRa_receive()`
+LoRa_init(cs_pin, miso_pin, mosi_pin, sck_pin, dio0_pin)
+
+# Main loop
+while True:
+    message = LoRa_receive()  # Function to receive LoRa message
+    if message:
+        print(f"Received: {message}")
+    time.sleep(1)
