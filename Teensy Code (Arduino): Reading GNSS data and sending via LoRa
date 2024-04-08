@@ -1,0 +1,48 @@
+#include <TinyGPS++.h>
+#include <RH_RF95.h>
+
+// Define the LoRa module pins
+#define RFM95_CS 10
+#define RFM95_RST 5
+#define RFM95_INT 2
+
+// Create an instance of the LoRa driver
+RH_RF95 rf95(RFM95_CS, RFM95_INT);
+
+// Create an instance of the GPS structure
+TinyGPSPlus gps;
+
+void setup() {
+  Serial1.begin(9600);   // Start the serial communication with the GNSS
+  pinMode(RFM95_RST, OUTPUT);
+  digitalWrite(RFM95_RST, HIGH);
+  delay(100);
+  digitalWrite(RFM95_RST, LOW);
+  delay(100);
+
+  if (!rf95.init()) {
+    while (1); // LoRa radio init failed, halt
+  }
+  rf95.setFrequency(915.0); // Set your frequency here
+  
+  // Optional: set the TX power and the modem configuration
+  rf95.setTxPower(18, false);
+}
+
+void loop() {
+  while (Serial1.available() > 0) {
+    char c = Serial1.read();
+    if (gps.encode(c)) {
+      if (gps.location.isUpdated()) {
+        // Construct the message to be sent
+        char message[100];
+        snprintf(message, sizeof(message), "Lat:%f Lon:%f Speed:%f", 
+                 gps.location.lat(), gps.location.lng(), gps.speed.kmph());
+
+        // Send the message via LoRa
+        rf95.send((uint8_t *)message, strlen(message));
+        rf95.waitPacketSent();
+      }
+    }
+  }
+}
