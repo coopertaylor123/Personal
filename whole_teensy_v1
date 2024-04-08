@@ -1,0 +1,77 @@
+#include <TinyGPS++.h>
+#include <RH_RF95.h>
+
+// LoRa Pins
+#define RFM95_CS 10
+#define RFM95_RST 9
+#define RFM95_INT 2
+
+// Create instance for LoRa
+RH_RF95 rf95(RFM95_CS, RFM95_INT);
+
+// Create GPS instance
+TinyGPSPlus gps;
+
+void setup() {
+  // Initialize Serial Communication with GNSS module at 9600 baud
+  Serial1.begin(9600);
+  
+  // Initialize Serial for debugging
+  Serial.begin(115200);
+  while (!Serial) ; // Wait for Serial to be ready
+  
+  Serial.println("Starting GNSS & LoRa Tracker");
+
+  // Initialize LoRa Module
+  pinMode(RFM95_RST, OUTPUT);
+  digitalWrite(RFM95_RST, HIGH);
+  delay(100);
+  digitalWrite(RFM95_RST, LOW);
+  delay(100);
+
+  if (!rf95.init()) {
+    Serial.println("LoRa radio init failed");
+    while (1);
+  }
+
+  if (!rf95.setFrequency(915.0)) { // Frequency should be set according to your region
+    Serial.println("LoRa radio set frequency failed");
+    while (1);
+  }
+
+  // Optional: Adjust LoRa transmission power
+  rf95.setTxPower(18, false);
+}
+
+void loop() {
+  // Continuously read data from GNSS module
+  while (Serial1.available() > 0) {
+    if (gps.encode(Serial1.read())) {
+      if (gps.location.isUpdated()) {
+        // Once a new location is available, package the data
+        float latitude = gps.location.lat();
+        float longitude = gps.location.lng();
+        float speed = gps.speed.kmph();
+        
+        // Prepare a binary packet (assuming 4 bytes for each float, adjust as necessary)
+        uint8_t packet[12];
+        memcpy(packet, &latitude, sizeof(latitude));
+        memcpy(packet + 4, &longitude, sizeof(longitude));
+        memcpy(packet + 8, &speed, sizeof(speed));
+        
+        // Send the packet over LoRa
+        rf95.send(packet, sizeof(packet));
+        rf95.waitPacketSent();
+        
+        // Debug output to Serial
+        Serial.print("Sent: Lat=");
+        Serial.print(latitude, 6);
+        Serial.print(" Lon=");
+        Serial.print(longitude, 6);
+        Serial.print(" Speed=");
+        Serial.print(speed);
+        Serial.println(" km/h");
+      }
+    }
+  }
+}
