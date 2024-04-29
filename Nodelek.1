@@ -1,0 +1,57 @@
+#include <Wire.h>
+
+// LDC1614 I2C address is 0x2A(42) if ADDR pin is grounded
+#define LDC1614_ADDRESS 0x2A
+
+// Register addresses
+#define DATA_MSB_CH0 0x00
+#define DATA_LSB_CH0 0x01
+// Add additional register addresses as needed
+
+void setup() {
+  Wire.begin(); // Initiate the Wire library
+  Serial.begin(9600); // Start serial communication at 9600 baud rate
+
+  // Configure LDC1614 registers for Channel 0
+  // Add additional configuration as needed following the datasheet instructions
+  writeRegister16(LDC1614_ADDRESS, CLOCK_DIVIDERS_CH0, 0x1002);
+  // Repeat the writeRegister16() function for other registers as needed
+}
+
+void loop() {
+  uint16_t dataMSB = readRegister16(LDC1614_ADDRESS, DATA_MSB_CH0);
+  uint16_t dataLSB = readRegister16(LDC1614_ADDRESS, DATA_LSB_CH0);
+
+  // Combine MSB and LSB of channel 0
+  unsigned long dataValue = ((unsigned long)dataMSB << 16) | dataLSB;
+
+  // Print the reading
+  Serial.print("Channel 0 Data: ");
+  Serial.println(dataValue, HEX);
+
+  delay(1000); // Delay for 1 second before the next reading
+}
+
+// Write 16-bit value to a register
+void writeRegister16(uint8_t address, uint8_t reg, uint16_t value) {
+  Wire.beginTransmission(address);
+  Wire.write(reg);
+  Wire.write((uint8_t)(value >> 8)); // Write MSB first
+  Wire.write((uint8_t)(value & 0xFF)); // Then write LSB
+  Wire.endTransmission();
+}
+
+// Read 16-bit value from a register
+uint16_t readRegister16(uint8_t address, uint8_t reg) {
+  Wire.beginTransmission(address);
+  Wire.write(reg);
+  Wire.endTransmission(false); // Send a restart message after transmission
+
+  Wire.requestFrom(address, (uint8_t)2); // Request 2 bytes
+  while (Wire.available() < 2); // Wait until all the bytes are received
+
+  uint16_t value = (Wire.read() << 8); // Read MSB and shift it left
+  value |= Wire.read(); // Read LSB and combine with MSB
+
+  return value;
+}
