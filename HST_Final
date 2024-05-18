@@ -1,0 +1,51 @@
+import numpy as np
+from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+
+# Constants
+G = 6.67430e-11  # Gravitational constant (m^3 kg^-1 s^-2)
+M = 5.972e24     # Mass of the Earth (kg)
+R = 6.371e6      # Radius of the Earth (meters)
+
+# Initial conditions for the satellite
+altitude = 547000               # Altitude of the satellite above Earth's surface (meters)
+r_initial = R + altitude        # Initial distance from Earth's center (meters)
+v_initial = np.sqrt(G * M / r_initial)  # Initial velocity for a circular orbit (meters/second)
+
+# Initial state vector: [x, y, vx, vy]
+initial_state = [r_initial, 0, 0, v_initial]
+
+# Define the differential equations for the satellite's orbit
+def orbit_dynamics(t, state):
+    x, y, vx, vy = state
+    r = np.sqrt(x**2 + y**2)   # Distance from Earth's center
+    ax = -G * M * x / r**3     # Acceleration in x-direction
+    ay = -G * M * y / r**3     # Acceleration in y-direction
+    return [vx, vy, ax, ay]
+
+# Time span for the simulation: 12 hours (in seconds)
+t_span = (0, 12 * 3600)
+# Evaluation points: 1000 time points between start and end time
+t_eval = np.linspace(t_span[0], t_span[1], 1000)
+
+# Solve the differential equations using solve_ivp
+solution = solve_ivp(orbit_dynamics, t_span, initial_state, t_eval=t_eval, rtol=1e-6)
+
+# Extract the results
+x, y = solution.y[0], solution.y[1]
+
+# Plot the results
+plt.figure(figsize=(8, 8))
+plt.plot(x, y, label='Satellite Orbit')
+
+# Plot the Earth for reference
+earth = plt.Circle((0, 0), R, color='b', alpha=0.5, label='Earth')
+plt.gca().add_patch(earth)
+
+plt.title('Simulated Orbit of Satellite')
+plt.xlabel('X Position (meters)')
+plt.ylabel('Y Position (meters)')
+plt.grid(True)
+plt.axis('equal')  # Ensure the aspect ratio is equal
+plt.legend()
+plt.show()
